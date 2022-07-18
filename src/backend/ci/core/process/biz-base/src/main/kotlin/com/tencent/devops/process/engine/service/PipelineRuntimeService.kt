@@ -39,6 +39,7 @@ import com.tencent.devops.common.event.dispatcher.pipeline.PipelineEventDispatch
 import com.tencent.devops.common.event.enums.ActionType
 import com.tencent.devops.common.event.pojo.pipeline.PipelineBuildCancelBroadCastEvent
 import com.tencent.devops.common.event.pojo.pipeline.PipelineBuildQueueBroadCastEvent
+import com.tencent.devops.common.log.utils.BuildLogPrinter
 import com.tencent.devops.common.pipeline.Model
 import com.tencent.devops.common.pipeline.container.NormalContainer
 import com.tencent.devops.common.pipeline.container.TriggerContainer
@@ -191,6 +192,7 @@ class PipelineRuntimeService @Autowired constructor(
     private val pipelineRuleService: PipelineRuleService,
     private val projectCacheService: ProjectCacheService,
     private val pipelineUrlBean: PipelineUrlBean,
+    private val buildLogPrinter: BuildLogPrinter,
     private val redisOperation: RedisOperation
 ) {
     companion object {
@@ -391,7 +393,9 @@ class PipelineRuntimeService @Autowired constructor(
         remark: String?,
         buildNoStart: Int?,
         buildNoEnd: Int?,
-        buildMsg: String?
+        buildMsg: String?,
+        startUser: List<String>?,
+        updateTimeDesc: Boolean? = null
     ): List<BuildHistory> {
         val currentTimestamp = System.currentTimeMillis()
         // 限制最大一次拉1000，防止攻击
@@ -421,7 +425,9 @@ class PipelineRuntimeService @Autowired constructor(
             } else limit,
             buildNoStart = buildNoStart,
             buildNoEnd = buildNoEnd,
-            buildMsg = buildMsg
+            buildMsg = buildMsg,
+            startUser = startUser,
+            updateTimeDesc = updateTimeDesc
         )
         val result = mutableListOf<BuildHistory>()
         val buildStatus = BuildStatus.values()
@@ -715,7 +721,7 @@ class PipelineRuntimeService @Autowired constructor(
         )
         val projectName = projectCacheService.getProjectName(projectId) ?: ""
         val context = StartBuildContext.init(projectId, pipelineId, buildId, startParamMap)
-
+        buildLogPrinter.startLog(buildId, null, null, context.executeCount)
         val updateTaskExistsRecord: MutableList<TPipelineBuildTaskRecord> = mutableListOf()
         val defaultStageTagId by lazy { stageTagService.getDefaultStageTag().data?.id }
         val lastTimeBuildTaskRecords = pipelineTaskService.listByBuildId(projectId, buildId)
@@ -849,7 +855,7 @@ class PipelineRuntimeService @Autowired constructor(
                     fastKill = stage.fastKill
                 )
                 if (stage.name.isNullOrBlank()) stage.name = stage.id
-                if (stage.tag == null) stage.tag = listOf(defaultStageTagId)
+                if (stage.tag == null) stage.tag = defaultStageTagId?.let { self -> listOf(self) }
             } else {
                 stageStatus = BuildStatus.RUNNING // Stage-1 一开始就计算为启动
                 stageStartTime = now
@@ -1487,7 +1493,8 @@ class PipelineRuntimeService @Autowired constructor(
         remark: String?,
         buildNoStart: Int?,
         buildNoEnd: Int?,
-        buildMsg: String?
+        buildMsg: String?,
+        startUser: List<String>?
     ): Int {
         return pipelineBuildDao.count(
             dslContext = dslContext,
@@ -1511,7 +1518,8 @@ class PipelineRuntimeService @Autowired constructor(
             remark = remark,
             buildNoStart = buildNoStart,
             buildNoEnd = buildNoEnd,
-            buildMsg = buildMsg
+            buildMsg = buildMsg,
+            startUser = startUser
         )
     }
 

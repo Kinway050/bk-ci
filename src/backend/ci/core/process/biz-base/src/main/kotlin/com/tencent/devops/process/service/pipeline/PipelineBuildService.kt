@@ -180,7 +180,12 @@ class PipelineBuildService(
             pipelineParamMap.putAll(originStartContexts.associateBy { it.key })
             pipelineParamMap[PIPELINE_BUILD_MSG] = BuildParameters(
                 key = PIPELINE_BUILD_MSG,
-                value = BuildMsgUtils.getBuildMsg(startValues?.get(PIPELINE_BUILD_MSG), startType, channelCode),
+                value = BuildMsgUtils.getBuildMsg(
+                    buildMsg = startValues?.get(PIPELINE_BUILD_MSG)
+                        ?: pipelineParamMap[PIPELINE_BUILD_MSG]?.value?.toString(),
+                    startType = startType,
+                    channelCode = channelCode
+                ),
                 readOnly = true
             )
             pipelineParamMap[PIPELINE_START_TYPE] = BuildParameters(
