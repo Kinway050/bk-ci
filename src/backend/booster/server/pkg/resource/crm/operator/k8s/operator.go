@@ -190,6 +190,7 @@ func (o *operator) getResource(clusterID string) ([]*op.NodeInfo, error) {
 		List(context.TODO(), metaV1.ListOptions{FieldSelector: fieldSelector.String()})
 
 	nodeInfoList := make([]*op.NodeInfo, 0, 1000)
+	cpuused := 0.0
 	for _, node := range nodeList.Items {
 
 		// get internal ip from status
@@ -204,6 +205,13 @@ func (o *operator) getResource(clusterID string) ([]*op.NodeInfo, error) {
 			blog.Errorf("k8s-operator: get node(%s) address internal ip empty, clusterID(%s)",
 				node.Name, clusterID)
 			continue
+		}
+
+		podList := nodeNonTerminatedPodsList
+		blog.Infof("kkkk: pod list len:(%d)", len(podList.Items))
+		if len(podList.Items) != 0 && len(nodeList.Items) != 0 && node.Name == nodeList.Items[0].Name {
+			pod := podList.Items[0]
+			blog.Infof("kkkk: pod node name: (%s)  ,node name:(%s)", &pod.Spec.NodeName, node.Name)
 		}
 
 		allocatedResource := getPodsTotalRequests(node.Name, nodeNonTerminatedPodsList)
@@ -228,8 +236,9 @@ func (o *operator) getResource(clusterID string) ([]*op.NodeInfo, error) {
 
 			Disabled: disabled,
 		})
+		cpuused += float64(allocatedResource.Cpu().Value())
 	}
-
+	blog.Infof("kkkk: node list cpu used: (%v)", cpuused)
 	blog.Debugf("k8s-operator: success to get resource clusterID(%s)", clusterID)
 	return nodeInfoList, nil
 }
@@ -672,7 +681,6 @@ func getPodsTotalRequests(nodeName string, podList *coreV1.PodList) coreV1.Resou
 			}
 		}
 	}
-
 	return requests
 }
 

@@ -169,7 +169,7 @@ func (nip *NodeInfoPool) GetStats() string {
 	message := ""
 	for city, block := range nip.nodeBlockMap {
 		message += fmt.Sprintf(
-			"\nCity: %s[cpuPerInstance: %.2f, memPerInstance:%.2f], available-instance: %d, report-instance: %d, noready-instance: %d "+
+			"\nkkkk City: %s[cpuPerInstance: %.2f, memPerInstance:%.2f], available-instance: %d, report-instance: %d, noready-instance: %d "+
 				"CPU-Left: %.2f/%.2f, MEM-Left: %.2f/%.2f",
 			city,
 			block.CPUPerInstance,
@@ -276,6 +276,10 @@ func (nip *NodeInfoPool) UpdateResources(nodeInfoList []*NodeInfo) {
 		if _, ok := nip.nodeBlockMap[key]; ok {
 			newBlock.noReadyInstance = nip.nodeBlockMap[key].noReadyInstance
 		}
+	}
+
+	for key, block := range newBlockMap {
+		blog.Infof("kkkk: key:(%s), cpu used:(%v)", key, block.CPUUsed)
 	}
 
 	nip.nodeBlockMap = make(map[string]*NodeInfoBlock, 1000)
